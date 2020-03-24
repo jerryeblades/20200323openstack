@@ -11,11 +11,17 @@
       os_image_info:  #call to os_info_py <-- installed with ansible
         cloud: alta3cloud #this is a reference to creds in clouds.yml
       register: result  #create a var called results and save the results
+      tags:
+        - audit
+        - image
 
     - name: Show images
       debug:  #call to debug.py <-- installed with ansible, prints to the screen
-        verbosity: 1  #we must throw -v to show this value
+        #verbosity: 1  #we must throw -v to show this value
         msg: "{{ result.openstack_image[0].id }}"
+      tags:
+        - audit
+        - image
 
     - name: PRECHECK - FAIL if images name does not contain 'cirros'
       fail:
@@ -26,11 +32,17 @@
       os_flavor_info:  #call to os_flavor_info.py <-- installed with ansible
         cloud:  alta3cloud  #this is a reference to creds in clouds.yml
       register: flav_result  #create a var called flav_result and save  the results
+      tags:
+        - audit
+        - flavor
 
     - name: Show flavors
       debug:  #call to debug.py <- installed with ansible, prints to the screen
-        verbosity: 1  #we must throw -v to show this value
-        msg: "{{ flav_result.openstack_flavors[0].id }}"
+        #verbosity: 1  #we must throw -v to show this value
+        #msg: "{{ flav_result.openstack_flavors[0].id }}"
+      tags:
+        - audit
+        - flavor
 
     - name: PRECHECK - FAIL if flavor is not 512MB RAM and 1 vcpu
       fail:
