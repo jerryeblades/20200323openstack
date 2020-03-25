@@ -1,0 +1,8 @@
+---
+img_to_dl: "https://cloud-images.ubuntu.com/focal/20200322/focal-server-cloudimg-amd64-disk-kvm.img"
+ansible_python_interpreter: "/usr/bin/python"
+tempdir: "/home/centos/image_temp/"
+
+#Assign vals to vars
+imgname: "{{ img_to_dl.split('/')[-1] }}"
+imgdate: "{{ img_to_dl.split('/')[-2] }}"

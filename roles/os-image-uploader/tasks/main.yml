@@ -1,0 +1,34 @@
+---
+#Create a temp dir to download images to 
+- name: Create a temp folder to DL to
+  file:
+    state: directory
+    path: "{{ tempdir }}" #reference to a var that contains the temp dir to DL images to
+
+
+#download image that will be uploaded to OpenStack Glance
+- name: Download the images "{{ img_to_dl }}"
+  get_url:
+    url: "{{ img_to_dl }}"
+    dest: "{{ tempdir }}"
+
+#Upload to OpenStack Glance (image service)
+- name: Upload the image "{{ img_to_dl }}"
+  os_image:
+    cloud: alta3cloud
+    name: "{{ imgdate }}-{{ imgname.split('.')[0] }}"
+    container_format: bare
+    disk_format: qcow2
+    state: present
+    filename: "{{ tempdir }}{{ imgname }}"
+    properties:
+      cpu_arch: x86_64
+      distro: ubuntu
+
+#Determine if the image uploaded successfully
+
+#Remove the temp folder containing the image on the local controller
+- name: Remove a temp folder containing the image on the local controller
+  file:
+    state: absent
+    path: "{{ tempdir }}"
