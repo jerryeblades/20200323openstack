@@ -1,5 +1,5 @@
 ---
-- name: Launch a VM with injected KeyPair
+- name: Launch a VM with injected KeyPair on Demo-Net
   hosts: localhost #normall this is IP address(s) of the host(s) to connect to.
 
   vars:
@@ -17,10 +17,10 @@
         verbosity: 1  #we must throw -v to show this value
         msg: "{{ result.openstack_image[0].id }}"
 
-    - name: PRECHECK - FAIL if images name does not contain 'cirros'
-      fail:
-        msg: "The image {{ result.openstack_image[0].id }} does not contain the 'cirros'. Exiting"
-      when: "'cirros' not in result.openstack_image[0].name"
+    #- name: PRECHECK - FAIL if images name does not contain 'cirros'
+    #  fail:
+    #    msg: "The image {{ result.openstack_image[0].id }} does not contain the 'cirros'. Exiting"
+    #  when: "'cirros' not in result.openstack_image[0].name"
 
     - name: Use Ansible to "openstack flavor list"
       os_flavor_info:  #call to os_flavor_info.py <-- installed with ansible
@@ -32,10 +32,10 @@
         verbosity: 1  #we must throw -v to show this value
         msg: "{{ flav_result.openstack_flavors[0].id }}"
 
-    - name: PRECHECK - FAIL if flavor is not 512MB RAM and 1 vcpu
-      fail:
-       msg: "The flavor {{ flav_result.openstack_flavors[0].id }} is not 512mb of RAM or not 1 VCPU"
-      when: flav_result.openstack_flavors[0].ram != 512 or flav_result.openstack_flavors[0].vcpus !=1
+    #- name: PRECHECK - FAIL if flavor is not 512MB RAM and 1 vcpu
+    #  fail:
+    #   msg: "The flavor {{ flav_result.openstack_flavors[0].id }} is not 512mb of RAM or not 1 VCPU"
+    #  when: flav_result.openstack_flavors[0].ram != 512 or flav_result.openstack_flavors[0].vcpus !=1
 
     #Generate and OpenSSH keypair with the default values (4096 bits, rsa)
     - name: Generate an OpenSSH keypair that we can upload to OpenStack
@@ -49,17 +49,48 @@
         state: "{{ present_or_absent }}"
         name: a3c_ansible_key #name of the key to store in openstack cloud
         public_key_file: /home/centos/.ssh/id_rsa_openstack.pub #this is the public key to upload to openstack
+
+    - name: "OpenStack Security Group - making... {{ present_or_absent }}"
+      os_security_group:
+        cloud: alta3cloud
+        state: "{{ present_or_absent }}"
+        name: ssh-icmp
+
+    - name: "OpenStack security Group rule - making ssh_icmp... {{ present_or_absent }}"
+      os_security_group_rule:
+        cloud: alta3cloud
+        security_group: ssh-icmp
+        protocol: icmp
+        remote_ip_prefix: 0.0.0.0/0
+    
+    - name: "OpenStack security Group rule - making ssh... {{ present_or_absent }}"
+      os_security_group_rule:
+        cloud: alta3cloud
+        security_group: ssh-icmp
+        protocol: tcp
+        port_range_min: 22
+        port_range_max: 22
+        remote_ip_prefix: 0.0.0.0/0
     
     - name: OpenStack VM - making... "{{ present_or_absent }}"
       register: vm_results
       os_server:
+        security_groups: ssh-icmp
+        network: demo-net
         cloud: alta3cloud
         state: "{{ present_or_absent }}"
         name: ansible_vm1
+        timeout: 600
         image: "{{ result.openstack_image[0].id }}"
-        flavor: "{{ flav_result.openstack_flavors[0].id }}"
+        flavor: "{{ flav_result.openstack_flavors[1].id }}"
         key_name: a3c_ansible_key #must match the name of the available key within the OpenStack cloud
                                   # allows SSH to the machine without a password (RSA Keying).
+
+    - name: "OpenStack Floating IP on VM - making {{ present_or_absent }}"
+      os_floating_ip:
+        cloud: alta3cloud
+        server: ansible_vm1
+        state: "{{ present_or_absent }}"
 
     - name: Show results of how VM launched
       debug:
